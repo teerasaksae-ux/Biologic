@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ระบบลูกค้าวัคซีน</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    /* --- ส่วนเพิ่ม Background --- */
+    background-image: linear-gradient(rgba(244, 246, 250, 0.7), rgba(244, 246, 250, 0.7)), 
+                      url('biologic.png'); /* เปลี่ยน URL รูปได้ที่นี่ */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    /* -------------------------- */
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.header img {
+    width: 60px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.92); /* โปร่งใสเล็กน้อยให้เห็นพื้นหลัง */
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px); /* เบลอพื้นหลังกระจก */
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-grid input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+}
+
+.full {
+    grid-column: span 2;
+}
+
+button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.delete-btn {
+    background: #e74c3c;
+    padding: 5px 10px;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: #3498db;
+    color: white;
+    padding: 12px 8px;
+    text-align: center;
+}
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+input.search {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+    <img src="logo.png" alt="Logo">
+    <h2>ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก (สทช. ปากช่อง) By.Pond</h2>
+</div>
+
+<div class="card">
+<form id="form">
+<div class="form-grid">
+
+<input type="date" id="date">
+<input type="text" id="phone" placeholder="📞 เบอร์โทร">
+
+<input type="text" id="name" placeholder="👤 ชื่อ">
+<input type="text" id="lastname" placeholder="👤 สกุล">
+
+<input type="text" id="houseNo" placeholder="🏠 บ้านเลขที่">
+<input type="text" id="subdistrict" placeholder="ตำบล">
+
+<input type="text" id="district" placeholder="อำเภอ">
+<input type="text" id="province" placeholder="จังหวัด">
+
+<input type="text" id="vaccine" placeholder="💉 ประเภทการติดต่อ">
+<input type="text" id="note" placeholder="📝 หมายเหตุ">
+
+<div class="full">
+<button type="submit">💾 บันทึกข้อมูลเข้าระบบ</button>
+</div>
+
+</div>
+</form>
+</div>
+
+<div class="card">
+<h3>🔍 รายชื่อข้อมูลลูกค้า</h3>
+
+<input type="text" id="search" class="search" placeholder="พิมพ์ชื่อเพื่อค้นหา..." onkeyup="searchTable()">
+
+<button onclick="exportExcel()" style="background: #27ae60;">📥 ดาวน์โหลดไฟล์ Excel</button>
+
+<br><br>
+
+<table id="table">
+<thead>
+<tr>
+    <th rowspan="3">ชื่อ-นามสกุล</th>
+    <th rowspan="3">เบอร์โทร</th>
+    <th colspan="4">ช่องทางการติดต่ออื่น ๆ</th>
+    <th rowspan="3">ประเภทการติดต่อ</th>
+    <th rowspan="3">ลบ</th>
+</tr>
+<tr>
+    <th colspan="4">ที่อยู่</th>
+</tr>
+<tr>
+    <th>บ้านเลขที่</th>
+    <th>ตำบล</th>
+    <th>อำเภอ</th>
+    <th>จังหวัด</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+</table>
+
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<script>
+let form = document.getElementById("form");
+let table = document.getElementById("table");
+
+// โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
+window.onload = function() {
+    let savedData = localStorage.getItem("vaccineData");
+    if (savedData) {
+        let data = JSON.parse(savedData);
+        data.forEach(item => {
+            renderRow(item.name, item.phone, item.houseNo, item.subdistrict, item.district, item.province, item.vaccine);
+        });
+    }
+}
+
+function saveData() {
+    let rows = document.querySelectorAll("#table tbody tr");
+    let data = [];
+    rows.forEach(row => {
+        let cells = row.querySelectorAll("td");
+        data.push({
+            name: cells[0].innerText,
+            phone: cells[1].innerText,
+            houseNo: cells[2].innerText,
+            subdistrict: cells[3].innerText,
+            district: cells[4].innerText,
+            province: cells[5].innerText,
+            vaccine: cells[6].innerText
+        });
+    });
+    localStorage.setItem("vaccineData", JSON.stringify(data));
+}
+
+function renderRow(name, phone, houseNo, subdistrict, district, province, vaccine) {
+    let row = table.querySelector("tbody").insertRow();
+    row.insertCell(0).innerText = name;
+    row.insertCell(1).innerText = phone;
+    row.insertCell(2).innerText = houseNo;
+    row.insertCell(3).innerText = subdistrict;
+    row.insertCell(4).innerText = district;
+    row.insertCell(5).innerText = province;
+    row.insertCell(6).innerText = vaccine;
+    let deleteCell = row.insertCell(7);
+    deleteCell.innerHTML = '<button class="delete-btn" onclick="deleteRow(this)">❌</button>';
+}
+
+form.onsubmit = function(e){
+    e.preventDefault();
+    let fullName = document.getElementById("name").value + " " + document.getElementById("lastname").value;
+    let phone = document.getElementById("phone").value;
+    let houseNo = document.getElementById("houseNo").value;
+    let sub = document.getElementById("subdistrict").value;
+    let dist = document.getElementById("district").value;
+    let prov = document.getElementById("province").value;
+    let vac = document.getElementById("vaccine").value;
+
+    renderRow(fullName, phone, houseNo, sub, dist, prov, vac);
+    saveData();
+    form.reset();
+}
+
+function deleteRow(btn){
+    if(confirm("ยืนยันการลบข้อมูลหรือไม่?")) {
+        let row = btn.parentNode.parentNode;
+        row.remove();
+        saveData();
+    }
+}
+
+function searchTable(){
+    let input = document.getElementById("search").value.toLowerCase();
+    let rows = table.querySelector("tbody").getElementsByTagName("tr");
+
+    for(let i=0; i < rows.length; i++){
+        let name = rows[i].cells[0].innerText.toLowerCase();
+        rows[i].style.display = name.includes(input) ? "" : "none";
+    }
+}
+
+function exportExcel(){
+    let wb = XLSX.utils.book_new();
+    let data = [];
+
+    // หัวเอกสาร
+    data.push(["", "", "สำนักเทคโนโลยีชีวภัณฑ์สัตว์", "", "", ""]);
+    data.push(["", "", "ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก", "", "", ""]);
+    
+    // Header ชั้นบน
+    data.push(["ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "ช่องทางการติดต่ออื่น ๆ", "", "", "", "ประเภทการติดต่อ*"]);
+    // Header ชั้นล่าง
+    data.push(["", "", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", ""]);
+
+    let rows = document.querySelectorAll("#table tbody tr");
+    rows.forEach((row) => {
+        if(row.style.display === "none") return;
+        let rowData = [];
+        let cols = row.querySelectorAll("td");
+        cols.forEach((col, i) => {
+            if(i !== 7) rowData.push(col.innerText);
+        });
+        data.push(rowData);
+    });
+
+    let ws = XLSX.utils.aoa_to_sheet(data);
+
+    ws["!merges"] = [
+        { s: { r: 0, c: 2 }, e: { r: 0, c: 5 } }, 
+        { s: { r: 1, c: 2 }, e: { r: 1, c: 5 } }, 
+        { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, 
+        { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } }, 
+        { s: { r: 2, c: 2 }, e: { r: 2, c: 5 } }, 
+        { s: { r: 2, c: 6 }, e: { r: 3, c: 6 } }
+    ];
+
+    ws["!cols"] = [
+        { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, 
+        { wch: 15 }, { wch: 15 }, { wch: 20 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    XLSX.writeFile(wb, "Customer_Data.xlsx");
+}
+</script>
+
+</body>
+</html>
