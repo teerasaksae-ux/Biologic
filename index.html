@@ -7,13 +7,11 @@
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    /* --- ส่วนเพิ่ม Background --- */
     background-image: linear-gradient(rgba(244, 246, 250, 0.7), rgba(244, 246, 250, 0.7)), 
-                      url('biologic.png'); /* เปลี่ยน URL รูปได้ที่นี่ */
+                      url('biologic.png'); 
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    /* -------------------------- */
     margin: 0;
     padding: 20px;
 }
@@ -39,12 +37,12 @@ body {
 }
 
 .card {
-    background: rgba(255, 255, 255, 0.92); /* โปร่งใสเล็กน้อยให้เห็นพื้นหลัง */
+    background: rgba(255, 255, 255, 0.92); 
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     margin-bottom: 20px;
-    backdrop-filter: blur(5px); /* เบลอพื้นหลังกระจก */
+    backdrop-filter: blur(5px);
 }
 
 .form-grid {
@@ -145,8 +143,9 @@ input.search {
 <input type="text" id="district" placeholder="อำเภอ">
 <input type="text" id="province" placeholder="จังหวัด">
 
-<input type="text" id="vaccine" placeholder="💉 ประเภทการติดต่อ">
-<input type="text" id="note" placeholder="📝 หมายเหตุ">
+<div class="full">
+    <input type="text" id="vaccine" placeholder="💉 ประเภทการติดต่อ">
+</div>
 
 <div class="full">
 <button type="submit">💾 บันทึกข้อมูลเข้าระบบ</button>
@@ -198,7 +197,6 @@ input.search {
 let form = document.getElementById("form");
 let table = document.getElementById("table");
 
-// โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
 window.onload = function() {
     let savedData = localStorage.getItem("vaccineData");
     if (savedData) {
@@ -277,13 +275,10 @@ function exportExcel(){
     let wb = XLSX.utils.book_new();
     let data = [];
 
-    // หัวเอกสาร
     data.push(["", "", "สำนักเทคโนโลยีชีวภัณฑ์สัตว์", "", "", ""]);
     data.push(["", "", "ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก", "", "", ""]);
     
-    // Header ชั้นบน
     data.push(["ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "ช่องทางการติดต่ออื่น ๆ", "", "", "", "ประเภทการติดต่อ*"]);
-    // Header ชั้นล่าง
     data.push(["", "", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", ""]);
 
     let rows = document.querySelectorAll("#table tbody tr");
