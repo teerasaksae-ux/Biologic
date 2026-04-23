@@ -131,7 +131,7 @@ input.search {
 <form id="form">
 <div class="form-grid">
 
-<input type="date" id="date">
+<input type="date" id="date" required>
 <input type="text" id="phone" placeholder="📞 เบอร์โทร" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
 
 <input type="text" id="name" placeholder="👤 ชื่อ (ไม่ใส่คำนำหน้า)">
@@ -160,13 +160,20 @@ input.search {
 
 <input type="text" id="search" class="search" placeholder="พิมพ์ชื่อเพื่อค้นหา..." onkeyup="searchTable()">
 
-<button onclick="exportExcel()" style="background: #27ae60;">📥 ดาวน์โหลดไฟล์ Excel</button>
+<div style="display: flex; gap: 10px;">
+    <button onclick="exportExcel()" style="background: #27ae60;">📥 ดาวน์โหลดไฟล์ Excel</button>
+    
+    <a href="https://docs.google.com/spreadsheets/d/1gvVHV0qGuBQz3UTGMj87tg8YTbgBqwDCzz0p22pPVdE/edit?usp=sharing" target="_blank" style="text-decoration: none;">
+        <button type="button" style="background: #8e44ad;">📊 ดูฐานข้อมูล Google Sheets</button>
+    </a>
+</div>
 
-<br><br>
+<br>
 
 <table id="table">
 <thead>
 <tr>
+    <th rowspan="3">วันที่ติดต่อ</th>
     <th rowspan="3">ชื่อ-นามสกุล</th>
     <th rowspan="3">เบอร์โทร</th>
     <th colspan="4">ที่อยู่</th>
@@ -195,19 +202,19 @@ input.search {
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-// *** URL ของ Google Apps Script ***
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzC15Dv_yr2JAb7cBZMAGgAi8lZPuPk4rXxkEqD4kvCofqlqxh5ob7eE8tT7HYsUiBg/exec";
 
 let form = document.getElementById("form");
 let table = document.getElementById("table");
 
 window.onload = function() {
+    document.getElementById("date").valueAsDate = new Date();
     loadData();
 }
 
 function loadData() {
     let tbody = table.querySelector("tbody");
-    tbody.innerHTML = "<tr><td colspan='8'>⏳ กำลังโหลดข้อมูล...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='9'>⏳ กำลังโหลดข้อมูล...</td></tr>";
 
     fetch(SCRIPT_URL)
         .then(response => response.json())
@@ -215,29 +222,31 @@ function loadData() {
             tbody.innerHTML = "";
             if (data && data.length > 0) {
                 data.reverse().forEach(row => {
-                    renderRow(row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
+                    renderRow("-", row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
                 });
             } else {
-                tbody.innerHTML = "<tr><td colspan='8'>ยังไม่มีข้อมูลในระบบ</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='9'>ยังไม่มีข้อมูลในระบบ</td></tr>";
             }
         })
         .catch(error => {
             console.error('Error loading data:', error);
-            tbody.innerHTML = "<tr><td colspan='8'>❌ ไม่สามารถดึงข้อมูลได้</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='9'>❌ ไม่สามารถดึงข้อมูลได้</td></tr>";
         });
 }
 
-function renderRow(name, phone, houseNo, subdistrict, district, province, vaccine) {
-    let row = table.querySelector("tbody").insertRow();
-    row.insertCell(0).innerText = name;
-    // แสดงผลเบอร์โทรปกติ (ถ้าดึงมาจาก Sheet ที่บันทึกด้วย ' ระบบจะแสดงเลข 0 ให้)
-    row.insertCell(1).innerText = phone;
-    row.insertCell(2).innerText = houseNo;
-    row.insertCell(3).innerText = subdistrict;
-    row.insertCell(4).innerText = district;
-    row.insertCell(5).innerText = province;
-    row.insertCell(6).innerText = vaccine;
-    let deleteCell = row.insertCell(7);
+function renderRow(date, name, phone, houseNo, subdistrict, district, province, vaccine) {
+    let tbody = table.querySelector("tbody");
+    let row = tbody.insertRow(0); 
+    
+    row.insertCell(0).innerText = date; 
+    row.insertCell(1).innerText = name;
+    row.insertCell(2).innerText = phone;
+    row.insertCell(3).innerText = houseNo;
+    row.insertCell(4).innerText = subdistrict;
+    row.insertCell(5).innerText = district;
+    row.insertCell(6).innerText = province;
+    row.insertCell(7).innerText = vaccine;
+    let deleteCell = row.insertCell(8);
     deleteCell.innerHTML = '<button class="delete-btn" onclick="deleteRow(this)">❌</button>';
 }
 
@@ -248,13 +257,16 @@ form.onsubmit = function(e){
     submitBtn.innerText = "⏳ กำลังบันทึกข้อมูล...";
     submitBtn.disabled = true;
 
-    // เพิ่มเครื่องหมาย ' หน้าเบอร์โทรศัพท์ เพื่อให้ Google Sheets บันทึกเป็นข้อความ (ไม่ตัดเลข 0)
+    let rawDate = document.getElementById("date").value;
+    let dateParts = rawDate.split("-");
+    let displayDate = dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0]; 
+
     let rawPhone = document.getElementById("phone").value;
-    let formattedPhone = "'" + rawPhone;
+    let fullName = document.getElementById("name").value + " " + document.getElementById("lastname").value;
 
     let data = {
-        name: document.getElementById("name").value + " " + document.getElementById("lastname").value,
-        phone: formattedPhone, 
+        name: fullName,
+        phone: "'" + rawPhone, 
         houseNo: document.getElementById("houseNo").value,
         subdistrict: document.getElementById("subdistrict").value,
         district: document.getElementById("district").value,
@@ -269,9 +281,10 @@ form.onsubmit = function(e){
         body: JSON.stringify(data)
     })
     .then(() => {
-        alert("✅ บันทึกข้อมูลสำเร็จ");
+        alert("✅ บันทึกข้อมูลสำเร็จ (ข้อมูลวันที่แสดงเฉพาะหน้าตารางนี้)");
+        renderRow(displayDate, data.name, rawPhone, data.houseNo, data.subdistrict, data.district, data.province, data.vaccine);
         form.reset();
-        loadData(); 
+        document.getElementById("date").valueAsDate = new Date();
     })
     .catch(error => {
         console.error('Error!', error.message);
@@ -285,9 +298,9 @@ form.onsubmit = function(e){
 
 function deleteRow(btn){
     let row = btn.parentNode.parentNode;
-    let nameToDelete = row.cells[0].innerText;
+    let nameToDelete = row.cells[1].innerText;
 
-    if(confirm(`ยืนยันการลบข้อมูลของ "${nameToDelete}" ออกจากระบบถาวร?`)) {
+    if(confirm(`ยืนยันการลบข้อมูลของ "${nameToDelete}"?`)) {
         btn.innerText = "⏳";
         btn.disabled = true;
 
@@ -300,12 +313,11 @@ function deleteRow(btn){
             })
         })
         .then(() => {
-            alert("✅ ลบข้อมูลออกจาก Google Sheets เรียบร้อยแล้ว");
+            alert("✅ ลบข้อมูลเรียบร้อยแล้ว");
             row.remove();
         })
         .catch(error => {
-            alert("❌ เกิดข้อผิดพลาดในการลบ");
-            console.error(error);
+            alert("❌ เกิดข้อผิดพลาด");
             btn.innerText = "❌";
             btn.disabled = false;
         });
@@ -317,7 +329,9 @@ function searchTable(){
     let rows = table.querySelector("tbody").getElementsByTagName("tr");
 
     for(let i=0; i < rows.length; i++){
-        let name = rows[i].cells[0].innerText.toLowerCase();
+        let nameCell = rows[i].cells[1];
+        if(!nameCell) continue;
+        let name = nameCell.innerText.toLowerCase();
         if(name === "⏳ กำลังโหลดข้อมูล...") continue;
         rows[i].style.display = name.includes(input) ? "" : "none";
     }
@@ -327,18 +341,17 @@ function exportExcel(){
     let wb = XLSX.utils.book_new();
     let data = [];
 
-    data.push(["", "", "สำนักเทคโนโลยีชีวภัณฑ์สัตว์", "", "", ""]);
-    data.push(["", "", "ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก", "", "", ""]);
-    
-    data.push(["ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", "ประเภทการติดต่อ*"]);
+    data.push(["", "", "สำนักเทคโนโลยีชีวภัณฑ์สัตว์", "", "", "", ""]);
+    data.push(["", "", "ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก", "", "", "", ""]);
+    data.push(["วันที่ติดต่อ", "ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", "ประเภทการติดต่อ*"]);
 
     let rows = document.querySelectorAll("#table tbody tr");
     rows.forEach((row) => {
         if(row.style.display === "none") return;
         let rowData = [];
         let cols = row.querySelectorAll("td");
-        if(cols.length < 7) return; 
-        for(let i=0; i<7; i++) rowData.push(cols[i].innerText);
+        if(cols.length < 8) return; 
+        for(let i=0; i<8; i++) rowData.push(cols[i].innerText);
         data.push(rowData);
     });
 
