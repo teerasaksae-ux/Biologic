@@ -132,7 +132,7 @@ input.search {
 <div class="form-grid">
 
 <input type="date" id="date">
-<input type="text" id="phone" placeholder="📞 เบอร์โทร">
+<input type="text" id="phone" placeholder="📞 เบอร์โทร" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
 
 <input type="text" id="name" placeholder="👤 ชื่อ (ไม่ใส่คำนำหน้า)">
 <input type="text" id="lastname" placeholder="👤 สกุล">
@@ -230,6 +230,7 @@ function loadData() {
 function renderRow(name, phone, houseNo, subdistrict, district, province, vaccine) {
     let row = table.querySelector("tbody").insertRow();
     row.insertCell(0).innerText = name;
+    // แสดงผลเบอร์โทรปกติ (ถ้าดึงมาจาก Sheet ที่บันทึกด้วย ' ระบบจะแสดงเลข 0 ให้)
     row.insertCell(1).innerText = phone;
     row.insertCell(2).innerText = houseNo;
     row.insertCell(3).innerText = subdistrict;
@@ -247,9 +248,13 @@ form.onsubmit = function(e){
     submitBtn.innerText = "⏳ กำลังบันทึกข้อมูล...";
     submitBtn.disabled = true;
 
+    // เพิ่มเครื่องหมาย ' หน้าเบอร์โทรศัพท์ เพื่อให้ Google Sheets บันทึกเป็นข้อความ (ไม่ตัดเลข 0)
+    let rawPhone = document.getElementById("phone").value;
+    let formattedPhone = "'" + rawPhone;
+
     let data = {
         name: document.getElementById("name").value + " " + document.getElementById("lastname").value,
-        phone: document.getElementById("phone").value,
+        phone: formattedPhone, 
         houseNo: document.getElementById("houseNo").value,
         subdistrict: document.getElementById("subdistrict").value,
         district: document.getElementById("district").value,
@@ -278,7 +283,6 @@ form.onsubmit = function(e){
     });
 }
 
-// ฟังก์ชันลบข้อมูลที่เชื่อมต่อกับ Google Sheets
 function deleteRow(btn){
     let row = btn.parentNode.parentNode;
     let nameToDelete = row.cells[0].innerText;
