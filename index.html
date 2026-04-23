@@ -134,7 +134,7 @@ input.search {
 <input type="date" id="date">
 <input type="text" id="phone" placeholder="📞 เบอร์โทร">
 
-<input type="text" id="name" placeholder="👤 ชื่อ">
+<input type="text" id="name" placeholder="👤 ชื่อ (ไม่ใส่คำนำหน้า)">
 <input type="text" id="lastname" placeholder="👤 สกุล">
 
 <input type="text" id="houseNo" placeholder="🏠 บ้านเลขที่">
@@ -148,7 +148,7 @@ input.search {
 </div>
 
 <div class="full">
-<button type="submit">💾 บันทึกข้อมูลเข้าระบบ</button>
+<button type="submit" id="submitBtn">💾 บันทึกข้อมูลเข้าระบบ</button>
 </div>
 
 </div>
@@ -169,12 +169,12 @@ input.search {
 <tr>
     <th rowspan="3">ชื่อ-นามสกุล</th>
     <th rowspan="3">เบอร์โทร</th>
-    <th colspan="4">ช่องทางการติดต่ออื่น ๆ</th>
+    <th colspan="4">ที่อยู่</th>
     <th rowspan="3">ประเภทการติดต่อ</th>
     <th rowspan="3">ลบ</th>
 </tr>
 <tr>
-    <th colspan="4">ที่อยู่</th>
+    <th colspan="4">ช่องทางการติดต่ออื่น ๆ</th>
 </tr>
 <tr>
     <th>บ้านเลขที่</th>
@@ -184,7 +184,8 @@ input.search {
 </tr>
 </thead>
 
-<tbody></tbody>
+<tbody>
+</tbody>
 </table>
 
 </div>
@@ -194,35 +195,36 @@ input.search {
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
+// *** URL ของ Google Apps Script ***
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPBM1updwrAt4EZe-jbtKO972rlfXNTlUUvCHg4sMUeHL-sIxRtAP_HSJNCbkKsK8/exec";
+
 let form = document.getElementById("form");
 let table = document.getElementById("table");
 
 window.onload = function() {
-    let savedData = localStorage.getItem("vaccineData");
-    if (savedData) {
-        let data = JSON.parse(savedData);
-        data.forEach(item => {
-            renderRow(item.name, item.phone, item.houseNo, item.subdistrict, item.district, item.province, item.vaccine);
-        });
-    }
+    loadData();
 }
 
-function saveData() {
-    let rows = document.querySelectorAll("#table tbody tr");
-    let data = [];
-    rows.forEach(row => {
-        let cells = row.querySelectorAll("td");
-        data.push({
-            name: cells[0].innerText,
-            phone: cells[1].innerText,
-            houseNo: cells[2].innerText,
-            subdistrict: cells[3].innerText,
-            district: cells[4].innerText,
-            province: cells[5].innerText,
-            vaccine: cells[6].innerText
+function loadData() {
+    let tbody = table.querySelector("tbody");
+    tbody.innerHTML = "<tr><td colspan='8'>⏳ กำลังโหลดข้อมูล...</td></tr>";
+
+    fetch(SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            tbody.innerHTML = "";
+            if (data && data.length > 0) {
+                data.reverse().forEach(row => {
+                    renderRow(row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
+                });
+            } else {
+                tbody.innerHTML = "<tr><td colspan='8'>ยังไม่มีข้อมูลในระบบ</td></tr>";
+            }
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            tbody.innerHTML = "<tr><td colspan='8'>❌ ไม่สามารถดึงข้อมูลได้</td></tr>";
         });
-    });
-    localStorage.setItem("vaccineData", JSON.stringify(data));
 }
 
 function renderRow(name, phone, houseNo, subdistrict, district, province, vaccine) {
@@ -240,24 +242,69 @@ function renderRow(name, phone, houseNo, subdistrict, district, province, vaccin
 
 form.onsubmit = function(e){
     e.preventDefault();
-    let fullName = document.getElementById("name").value + " " + document.getElementById("lastname").value;
-    let phone = document.getElementById("phone").value;
-    let houseNo = document.getElementById("houseNo").value;
-    let sub = document.getElementById("subdistrict").value;
-    let dist = document.getElementById("district").value;
-    let prov = document.getElementById("province").value;
-    let vac = document.getElementById("vaccine").value;
+    
+    let submitBtn = document.getElementById("submitBtn");
+    submitBtn.innerText = "⏳ กำลังบันทึกข้อมูล...";
+    submitBtn.disabled = true;
 
-    renderRow(fullName, phone, houseNo, sub, dist, prov, vac);
-    saveData();
-    form.reset();
+    let data = {
+        name: document.getElementById("name").value + " " + document.getElementById("lastname").value,
+        phone: document.getElementById("phone").value,
+        houseNo: document.getElementById("houseNo").value,
+        subdistrict: document.getElementById("subdistrict").value,
+        district: document.getElementById("district").value,
+        province: document.getElementById("province").value,
+        vaccine: document.getElementById("vaccine").value
+    };
+
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        alert("✅ บันทึกข้อมูลสำเร็จ");
+        form.reset();
+        loadData(); 
+    })
+    .catch(error => {
+        console.error('Error!', error.message);
+        alert("❌ เกิดข้อผิดพลาดในการบันทึก");
+    })
+    .finally(() => {
+        submitBtn.innerText = "💾 บันทึกข้อมูลเข้าระบบ";
+        submitBtn.disabled = false;
+    });
 }
 
+// ฟังก์ชันลบข้อมูลที่เชื่อมต่อกับ Google Sheets
 function deleteRow(btn){
-    if(confirm("ยืนยันการลบข้อมูลหรือไม่?")) {
-        let row = btn.parentNode.parentNode;
-        row.remove();
-        saveData();
+    let row = btn.parentNode.parentNode;
+    let nameToDelete = row.cells[0].innerText;
+
+    if(confirm(`ยืนยันการลบข้อมูลของ "${nameToDelete}" ออกจากระบบถาวร?`)) {
+        btn.innerText = "⏳";
+        btn.disabled = true;
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                action: "delete",
+                name: nameToDelete
+            })
+        })
+        .then(() => {
+            alert("✅ ลบข้อมูลออกจาก Google Sheets เรียบร้อยแล้ว");
+            row.remove();
+        })
+        .catch(error => {
+            alert("❌ เกิดข้อผิดพลาดในการลบ");
+            console.error(error);
+            btn.innerText = "❌";
+            btn.disabled = false;
+        });
     }
 }
 
@@ -267,6 +314,7 @@ function searchTable(){
 
     for(let i=0; i < rows.length; i++){
         let name = rows[i].cells[0].innerText.toLowerCase();
+        if(name === "⏳ กำลังโหลดข้อมูล...") continue;
         rows[i].style.display = name.includes(input) ? "" : "none";
     }
 }
@@ -278,36 +326,19 @@ function exportExcel(){
     data.push(["", "", "สำนักเทคโนโลยีชีวภัณฑ์สัตว์", "", "", ""]);
     data.push(["", "", "ข้อมูลผู้มีส่วนได้ส่วนเสียภายนอก", "", "", ""]);
     
-    data.push(["ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "ช่องทางการติดต่ออื่น ๆ", "", "", "", "ประเภทการติดต่อ*"]);
-    data.push(["", "", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", ""]);
+    data.push(["ชื่อองค์กร/ชื่อ-นามสกุล*", "เบอร์โทรศัพท์", "บ้านเลขที่", "ตำบล", "อำเภอ", "จังหวัด", "ประเภทการติดต่อ*"]);
 
     let rows = document.querySelectorAll("#table tbody tr");
     rows.forEach((row) => {
         if(row.style.display === "none") return;
         let rowData = [];
         let cols = row.querySelectorAll("td");
-        cols.forEach((col, i) => {
-            if(i !== 7) rowData.push(col.innerText);
-        });
+        if(cols.length < 7) return; 
+        for(let i=0; i<7; i++) rowData.push(cols[i].innerText);
         data.push(rowData);
     });
 
     let ws = XLSX.utils.aoa_to_sheet(data);
-
-    ws["!merges"] = [
-        { s: { r: 0, c: 2 }, e: { r: 0, c: 5 } }, 
-        { s: { r: 1, c: 2 }, e: { r: 1, c: 5 } }, 
-        { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, 
-        { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } }, 
-        { s: { r: 2, c: 2 }, e: { r: 2, c: 5 } }, 
-        { s: { r: 2, c: 6 }, e: { r: 3, c: 6 } }
-    ];
-
-    ws["!cols"] = [
-        { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, 
-        { wch: 15 }, { wch: 15 }, { wch: 20 }
-    ];
-
     XLSX.utils.book_append_sheet(wb, ws, "Data");
     XLSX.writeFile(wb, "Customer_Data.xlsx");
 }
